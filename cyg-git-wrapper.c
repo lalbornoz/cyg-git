@@ -13,11 +13,12 @@
 
 #define GIT_STDOUT_BUFFER_WINDOW    1024
 
-static bool check_path_conversion(int argc, char **argv);
+static bool check_path_conversion_out(int argc, char **argv);
 static void construct_argv_new(const char *argv0, int argc, char **argv, char ***pargv_new);
 static int err(int eval, const char *fmt, ...);
+static void paths_convert_in(int argc, char **argv);
 
-static bool check_path_conversion(int argc, char **argv)
+static bool check_path_conversion_out(int argc, char **argv)
 {
     if ((argc == 3)
     &&  (strcmp(argv[1], "rev-parse") == 0)
@@ -59,6 +60,30 @@ static int err(int eval, const char *fmt, ...)
     return eval;
 }
 
+static void paths_convert_in(int argc, char **argv)
+{
+    bool foundfl = false;
+    ssize_t nconv;
+    char *path_buf = NULL;
+
+    if ((argc > 2) && (strcmp(argv[1], "add") == 0)) {
+        for (int narg = 2; narg < argc; narg++) {
+            if (foundfl) {
+                if ((nconv = cygwin_conv_path(CCP_ABSOLUTE | CCP_WIN_A_TO_POSIX, argv[narg], NULL, 0)) < 0)
+                    err(EXIT_FAILURE, "cygwin_conv_path");
+                else if (!(path_buf = malloc(nconv)))
+                    err(EXIT_FAILURE, "malloc");
+                else if ((nconv = cygwin_conv_path(CCP_ABSOLUTE | CCP_WIN_A_TO_POSIX, argv[narg], path_buf, nconv)) < 0)
+                    err(EXIT_FAILURE, "cygwin_conv_path");
+                else
+                    argv[narg] = path_buf;
+            } else if (strcmp(argv[narg], "--") == 0) {
+                foundfl = true;
+            }
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     char **argv_new = NULL;
@@ -71,7 +96,8 @@ int main(int argc, char **argv)
     char *pipe_buf_win = NULL;
     int pipe_fds[2];
 
-    convertfl = check_path_conversion(argc, argv);
+    paths_convert_in(argc, argv);
+    convertfl = check_path_conversion_out(argc, argv);
     construct_argv_new(GIT_FNAME_POSIX, argc, argv, &argv_new);
     if (!(pipe_buf = malloc(pipe_buf_size = GIT_STDOUT_BUFFER_WINDOW)))
         return err(EXIT_FAILURE, "malloc");

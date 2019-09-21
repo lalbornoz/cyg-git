@@ -66,7 +66,9 @@ static void paths_convert_in(int argc, char **argv)
     ssize_t nconv;
     char *path_buf = NULL;
 
-    if ((argc > 2) && (strcmp(argv[1], "add") == 0)) {
+    if ((argc > 2)
+    &&  ((strcmp(argv[1], "add") == 0)
+    ||   (strcmp(argv[1], "clean") == 0))) {
         for (int narg = 2; narg < argc; narg++) {
             if (foundfl) {
                 if ((nconv = cygwin_conv_path(CCP_ABSOLUTE | CCP_WIN_A_TO_POSIX, argv[narg], NULL, 0)) < 0)

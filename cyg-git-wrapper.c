@@ -20,12 +20,13 @@ static void paths_convert_in(int argc, char **argv);
 
 static bool check_path_conversion_out(int argc, char **argv)
 {
-    if ((argc == 3)
-    &&  (strcmp(argv[1], "rev-parse") == 0)
-    &&  (strcmp(argv[2], "--show-toplevel") == 0))
-        return true;
-    else
-        return false;
+    for (int narg = 1; narg < argc; narg++) {
+        if ((strcmp(argv[narg], "--git-dir") == 0)
+        ||  (strcmp(argv[narg], "--show-toplevel") == 0)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 static void construct_argv_new(const char *argv0, int argc, char **argv, char ***pargv_new)
@@ -97,6 +98,18 @@ int main(int argc, char **argv)
     size_t pipe_buf_len = 0, pipe_buf_size = 0;
     char *pipe_buf_win = NULL;
     int pipe_fds[2];
+
+#ifdef DEBUG
+    {
+        FILE *f = fopen("/tmp/cyg-git.log", "a");
+        fprintf(f, "argc=%d, argv=", argc);
+        for (int n = 0; n < argc; n++) {
+            fprintf(f, "%s ", argv[n]);
+        }
+        fprintf(f, "\n");
+        fclose(f);
+    }
+#endif /* DEBUG */
 
     paths_convert_in(argc, argv);
     convertfl = check_path_conversion_out(argc, argv);
